@@ -18,32 +18,6 @@ data "aws_vpc" "default" {
   default = true
 }
 
-resource "aws_instance" "blog" {
-  ami           = data.aws_ami.app_ami.id
-  instance_type = var.instance_type
-
-  vpc_security_group_ids = [module.blog.sg.security_group_id]
-
-  tags = {
-    Name = "Learning Terraform"
-  }
-}
-
-module "blog_sg" {
-  source  = "terraform-aws-modules/security-group/aws"
-  version = "5.2.0"
-  name    = "blog_new"
-
-  vpc_id  =  data.aws_vpc.default.id
-
-  ingress_rules       = ["http-80-tcp", "https-443-tcp"]
-  ingress_cidr_blocks = ["0.0.0.0/0"]
-
-  egress_rules       = ["all-all"]
-  egress_cidr_blocks = ["0.0.0.0/0"]
-}
-
-
 module "blog_vpc" {
   source = "terraform-aws-modules/vpc/aws"
 
@@ -59,5 +33,34 @@ module "blog_vpc" {
     Environment = "dev"
   }
 }
+
+resource "aws_instance" "blog" {
+  ami                    = data.aws_ami.app_ami.id
+  instance_type          = var.instance_type
+  vpc_security_group_ids = [module.blog.sg.security_group_id]
+
+  subnet_id = module.blog_vpc.public_subnets[0]
+
+  tags = {
+    Name = "Learning Terraform"
+  }
+}
+
+module "blog_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "5.2.0"
+  name    = "blog_new"
+
+  vpc_id  =  module.blog_vpc.vpc_id
+
+  ingress_rules       = ["http-80-tcp", "https-443-tcp"]
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+
+  egress_rules       = ["all-all"]
+  egress_cidr_blocks = ["0.0.0.0/0"]
+}
+
+
+
 
 
